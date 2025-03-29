@@ -42,7 +42,7 @@ public class JsonWriterService implements Runnable{
         writer.name("address").value(x.getAddress());
         writer.name("city").value(x.getCity());
         writer.name("state").value(x.getState());
-        writer.beginObject();
+        writer.name("menu").beginObject();
         for (Map.Entry<String, Integer> item: x.getMenu().entrySet()) {
             writer.name(item.getKey()).value(item.getValue());
         }

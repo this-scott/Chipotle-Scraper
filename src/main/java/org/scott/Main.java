@@ -6,16 +6,13 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 
 import java.awt.*;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
-import com.google.gson.stream.JsonWriter;
 
 
 public class Main {
@@ -26,7 +23,7 @@ public class Main {
         System.out.println("Hello World!");
 
         Queue<String> addressLinks = new ConcurrentLinkedQueue<>();
-        int NUM_SCRAPERS = 5;
+        int NUM_SCRAPERS = 6;
         List<Scraper> scrapers = new ArrayList<>();
         ExecutorService executor = Executors.newFixedThreadPool(NUM_SCRAPERS);
         /*Path rn
@@ -41,6 +38,12 @@ public class Main {
         BlockingQueue<AddressMenu> writeQueue = new LinkedBlockingQueue<>();
         JsonWriterService writer = new JsonWriterService("output.json", writeQueue);
         new Thread(writer).start();
+
+        /* THIS IS FOR SCRAPING LOCATION LINKS IF THEY'RE DIFFERENT NOW
+        I SHOULD PROBABLY JUST TURN THIS INTO AN ARGUMENT BUT IM LAZY
+
+        //create text file for addresses
+        BufferedWriter bwriter = new BufferedWriter(new FileWriter("addresslinks.txt"));
 
         //create web driver
         WebDriver driver = new ChromeDriver();
@@ -64,24 +67,44 @@ public class Main {
                     //regular page
                     addressLinks.add(cityLink);
                     System.out.println(cityLink);
+                    bwriter.write(cityLink);
+                    bwriter.newLine();
+                    bwriter.flush();
                 } else {
                     //parse another list
                     for (String link:tlinks) {
                         link=link.replace("../","");
                         System.out.println(link);
                         addressLinks.add(link);
+                        bwriter.write(link);
+                        bwriter.newLine();
+                        bwriter.flush();
                     }
                 }
             }
         }
+         */
+
+        //THIS IS WHAT THE OTHER SIDE OF THE ARGUMENT WOULD BE -> READ FROM TXT
+        try (BufferedReader br = new BufferedReader(new FileReader("addresslinks.txt"))) {
+            String line;
+            while ((line = br.readLine()) != null) {
+                addressLinks.add(line);
+            }
+        } catch (IOException e) {
+            System.err.println("Error reading the file: " + e.getMessage());
+        }
+
 
         //Spawning Scrapers now that list is created
         for (int i = 0; i < NUM_SCRAPERS; i++) {
+            Thread.sleep(4000);
             Scraper scraper = new Scraper(i,addressLinks, writeQueue);
             scrapers.add(scraper);
             executor.submit(scraper);
         }
 
+        //I actually can't remember why I have this besides a kill switch
         while (!addressLinks.isEmpty()) {
             try {
                 Thread.sleep(500);
